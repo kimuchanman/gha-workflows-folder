@@ -173,80 +173,67 @@
     const { folders } = buildTree(items);
     if (folders.size === 0) return;
 
-    // Find the "Show more" element to insert folders before it
-    const showMore = ul.querySelector(SELECTORS.showMore);
-    const showMoreLi = showMore ? showMore.closest("li, div") : null;
+    // Insert folders at the top of the list, before the first workflow item.
+    // Ungrouped items remain in their original positions below.
+    const firstItem = ul.querySelector(SELECTORS.workflowItem);
 
-    // Build insertion order: preserve relative order of ungrouped items and folder groups
-    // Walk through original items in order, emitting folders at first encounter
-    const emittedFolders = new Set();
-
-    items.forEach((item) => {
-      const label = item.querySelector(SELECTORS.label);
-      if (!label) return;
-
-      const fullName =
-        item.getAttribute(ATTR_ORIGINAL_NAME) || label.textContent.trim();
-      const slashIndex = fullName.indexOf("/");
-
-      if (slashIndex > 0 && slashIndex < fullName.length - 1) {
-        const folderName = fullName.substring(0, slashIndex);
-        if (!emittedFolders.has(folderName) && folders.has(folderName)) {
-          emittedFolders.add(folderName);
-          const folderEl = createFolderElement(folderName, folders.get(folderName));
-          if (showMoreLi) {
-            ul.insertBefore(folderEl, showMoreLi);
-          } else {
-            ul.appendChild(folderEl);
-          }
-        }
-      }
-      // Ungrouped items stay in place (they're still in the ul)
-    });
+    for (const [folderName, folderItems] of folders) {
+      const folderEl = createFolderElement(folderName, folderItems);
+      ul.insertBefore(folderEl, firstItem);
+    }
   }
 
   /**
-   * Automatically click "Show more workflows..." until all are loaded.
-   * Returns a promise that resolves when all workflows are visible.
+   * Fetch all remaining workflow pages via the workflows_partial endpoint
+   * and insert items into the DOM. Much faster than clicking "Show more"
+   * repeatedly since all pages are fetched in parallel.
    */
-  function expandAllWorkflows() {
-    return new Promise((resolve) => {
-      function clickNext() {
-        const nav = document.querySelector(SELECTORS.nav);
-        if (!nav) {
-          resolve();
-          return;
-        }
+  async function fetchAllWorkflows() {
+    const nav = document.querySelector(SELECTORS.nav);
+    if (!nav) return;
 
-        const showMoreEl = nav.querySelector(SELECTORS.showMore);
-        if (!showMoreEl) {
-          resolve();
-          return;
-        }
+    const showMoreEl = nav.querySelector(SELECTORS.showMore);
+    if (!showMoreEl) return;
 
-        // Find the clickable button/link inside or the element itself
-        const btn =
-          showMoreEl.querySelector("button") ||
-          showMoreEl.querySelector("a") ||
-          showMoreEl;
+    const totalPages = parseInt(showMoreEl.getAttribute("data-total-pages"), 10);
+    const currentPage = parseInt(showMoreEl.getAttribute("data-current-page"), 10);
+    if (!totalPages || totalPages <= currentPage) return;
 
-        // Check visibility - if hidden, all items are loaded
-        if (
-          showMoreEl.hidden ||
-          getComputedStyle(showMoreEl).display === "none"
-        ) {
-          resolve();
-          return;
-        }
+    // src attribute contains the base URL, e.g. "/{owner}/{repo}/actions/workflows_partial?query="
+    const baseSrc = showMoreEl.getAttribute("src");
+    if (!baseSrc) return;
 
-        btn.click();
+    const ul = findWorkflowList();
+    if (!ul) return;
 
-        // Wait for new items to load, then try again
-        setTimeout(clickNext, 300);
+    // Fetch all remaining pages in parallel
+    const pages = [];
+    for (let page = currentPage + 1; page <= totalPages; page++) {
+      pages.push(page);
+    }
+
+    const responses = await Promise.all(
+      pages.map((page) =>
+        fetch(`${baseSrc}&page=${page}`, {
+          headers: { Accept: "text/html" },
+          credentials: "include",
+        }).then((r) => (r.ok ? r.text() : ""))
+      )
+    );
+
+    // Parse each response and insert workflow items into the list
+    const parser = new DOMParser();
+    for (const html of responses) {
+      if (!html) continue;
+      const doc = parser.parseFromString(html, "text/html");
+      const items = doc.querySelectorAll(SELECTORS.workflowItem);
+      for (const item of items) {
+        ul.appendChild(document.adoptNode(item));
       }
+    }
 
-      clickNext();
-    });
+    // Hide the "Show more" button since all items are now loaded
+    showMoreEl.hidden = true;
   }
 
   /**
@@ -287,7 +274,7 @@
     if (expandingAll) return;
     expandingAll = true;
     try {
-      await expandAllWorkflows();
+      await fetchAllWorkflows();
       applyGrouping();
     } finally {
       expandingAll = false;
