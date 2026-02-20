@@ -1,0 +1,55 @@
+/* GHA Workflows Folder — folder UI styles */
+
+/* <details> element wrapping each folder group */
+.gha-folder {
+  margin: 0;
+  padding: 0;
+}
+
+/* <summary> acts as the folder header / toggle button */
+.gha-folder-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-fg-default, #1f2328);
+  cursor: pointer;
+  list-style: none; /* remove the default disclosure triangle */
+  user-select: none;
+}
+
+/* Hide the default marker in WebKit/Firefox */
+.gha-folder-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gha-folder-summary:hover {
+  background-color: var(--color-action-list-item-default-hover-bg, rgba(208, 215, 222, 0.32));
+}
+
+/* Folder icon using a CSS arrow that rotates on open */
+.gha-folder-summary::before {
+  content: '▶';
+  font-size: 10px;
+  display: inline-block;
+  transition: transform 0.15s ease;
+  color: var(--color-fg-muted, #656d76);
+}
+
+.gha-folder[open] > .gha-folder-summary::before {
+  transform: rotate(90deg);
+}
+
+/* Indented child workflow list */
+.gha-folder-children {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 20px;
+}
+
+.gha-folder-child {
+  list-style: none;
+}

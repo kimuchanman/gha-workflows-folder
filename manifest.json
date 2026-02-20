@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "GHA Workflows Folder",
+  "version": "1.0.0",
+  "description": "GitHub Actions の Workflows で name に / を使っていると folder っぽく見えるようになる",
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/actions*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}
