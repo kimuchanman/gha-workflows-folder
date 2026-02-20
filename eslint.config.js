@@ -12,6 +12,9 @@ export default [
         setTimeout: "readonly",
         clearTimeout: "readonly",
         getComputedStyle: "readonly",
+        fetch: "readonly",
+        DOMParser: "readonly",
+        Promise: "readonly",
       },
     },
     rules: {
