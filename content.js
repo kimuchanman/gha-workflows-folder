@@ -173,36 +173,14 @@
     const { folders } = buildTree(items);
     if (folders.size === 0) return;
 
-    // Find the "Show more" element to insert folders before it
-    const showMore = ul.querySelector(SELECTORS.showMore);
-    const showMoreLi = showMore ? showMore.closest("li, div") : null;
+    // Insert folders at the top of the list, before the first workflow item.
+    // Ungrouped items remain in their original positions below.
+    const firstItem = ul.querySelector(SELECTORS.workflowItem);
 
-    // Build insertion order: preserve relative order of ungrouped items and folder groups
-    // Walk through original items in order, emitting folders at first encounter
-    const emittedFolders = new Set();
-
-    items.forEach((item) => {
-      const label = item.querySelector(SELECTORS.label);
-      if (!label) return;
-
-      const fullName =
-        item.getAttribute(ATTR_ORIGINAL_NAME) || label.textContent.trim();
-      const slashIndex = fullName.indexOf("/");
-
-      if (slashIndex > 0 && slashIndex < fullName.length - 1) {
-        const folderName = fullName.substring(0, slashIndex);
-        if (!emittedFolders.has(folderName) && folders.has(folderName)) {
-          emittedFolders.add(folderName);
-          const folderEl = createFolderElement(folderName, folders.get(folderName));
-          if (showMoreLi) {
-            ul.insertBefore(folderEl, showMoreLi);
-          } else {
-            ul.appendChild(folderEl);
-          }
-        }
-      }
-      // Ungrouped items stay in place (they're still in the ul)
-    });
+    for (const [folderName, folderItems] of folders) {
+      const folderEl = createFolderElement(folderName, folderItems);
+      ul.insertBefore(folderEl, firstItem);
+    }
   }
 
   /**
