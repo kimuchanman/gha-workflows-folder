@@ -1,33 +1,33 @@
 # gha-workflows-folder
 
-GitHub Actions のワークフロー一覧サイドバーで、`/` を含む名前のワークフローを折りたたみ可能なフォルダにグループ化する Chrome 拡張。
+A Chrome extension that groups workflows whose names contain `/` into collapsible folders in the GitHub Actions workflow sidebar.
 
 ## Before / After
 
 | Before | After |
 |--------|-------|
-| `frontend/build` | **frontend/** (折りたたみ) |
+| `frontend/build` | **frontend/** (collapsible) |
 | `frontend/lint` | ├ `build` |
 | `frontend/test` | ├ `lint` |
 | `publish/libs` | └ `test` |
 | | **publish/** |
 | | └ `libs` |
 
-## 機能
+## Features
 
-- ワークフロー名の最初の `/` でフォルダ分割（`frontend/tests/unit` → フォルダ `frontend`、表示名 `tests/unit`）
-- "Show more workflows..." を自動クリックして全ワークフローを読み込み
-- フォルダの折りたたみ / 展開（アクティブなワークフローを含むフォルダは自動展開）
-- SPA ナビゲーション対応（MutationObserver + Turbo イベント）
-- GitHub Primer CSS 変数使用 → ライト / ダーク / ディム 全テーマ対応
+- Splits workflow names at the first `/` into folders (`frontend/tests/unit` → folder `frontend`, display name `tests/unit`)
+- Fetches all workflows in parallel from a GitHub internal endpoint for fast bulk loading
+- Collapsible folders with auto-expand for folders containing the active workflow
+- SPA navigation support (MutationObserver + Turbo events)
+- Full theme support (light / dark / dim) via GitHub Primer CSS variables
 
-## インストール
+## Installation
 
-1. このリポジトリを clone
-2. Chrome で `chrome://extensions` を開く
-3. 「デベロッパーモード」を ON
-4. 「パッケージ化されていない拡張機能を読み込む」からこのフォルダを選択
+1. Clone this repository
+2. Open `chrome://extensions` in Chrome
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select this folder
 
-## 対象ページ
+## Target Pages
 
-`https://github.com/*/*/actions*` にマッチするページで動作します。
+Runs on pages matching `https://github.com/*/*/actions*`.
