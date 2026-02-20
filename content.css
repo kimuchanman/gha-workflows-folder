@@ -22,7 +22,7 @@
 }
 
 .ghawf-folder-header:hover {
-  background-color: var(--bgColor-neutral-muted, rgba(175, 184, 193, 0.2));
+  background-color: var(--bgColor-neutral-muted, rgb(175 184 193 / 20%));
 }
 
 .ghawf-folder-arrow {
@@ -56,7 +56,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 10px;
-  background-color: var(--bgColor-neutral-muted, rgba(175, 184, 193, 0.2));
+  background-color: var(--bgColor-neutral-muted, rgb(175 184 193 / 20%));
   color: var(--fgColor-muted);
   font-size: 12px;
   font-weight: 500;
