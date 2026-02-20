@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "GHA Workflows Folder",
+  "version": "1.0.0",
+  "description": "Group GitHub Actions workflows by folder prefix (e.g. frontend/build, frontend/lint → frontend/ folder)",
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/actions*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
