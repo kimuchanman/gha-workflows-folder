@@ -228,7 +228,7 @@
       const doc = parser.parseFromString(html, "text/html");
       const items = doc.querySelectorAll(SELECTORS.workflowItem);
       for (const item of items) {
-        ul.insertBefore(document.adoptNode(item), showMoreEl);
+        ul.appendChild(document.adoptNode(item));
       }
     }
 
