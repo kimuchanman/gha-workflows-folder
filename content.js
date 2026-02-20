@@ -16,7 +16,6 @@
 
   const ATTR_ORIGINAL_NAME = "data-ghawf-original-name";
 
-  let debounceTimer = null;
   let expandingAll = false;
 
   /**
@@ -171,7 +170,7 @@
     const items = Array.from(ul.querySelectorAll(SELECTORS.workflowItem));
     if (items.length === 0) return;
 
-    const { ungrouped, folders } = buildTree(items);
+    const { folders } = buildTree(items);
     if (folders.size === 0) return;
 
     // Find the "Show more" element to insert folders before it
@@ -248,17 +247,6 @@
 
       clickNext();
     });
-  }
-
-  /**
-   * Debounced apply.
-   */
-  function scheduleApply() {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      debounceTimer = null;
-      applyGrouping();
-    }, 100);
   }
 
   /**

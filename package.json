@@ -1,0 +1,20 @@
+{
+  "name": "gha-workflows-folder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . && stylelint '**/*.css'",
+    "lint:js": "eslint .",
+    "lint:css": "stylelint '**/*.css'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate:manifest": "node tests/validate-manifest.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^37.0.0",
+    "vitest": "^3.0.0"
+  }
+}
