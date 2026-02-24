@@ -5,15 +5,15 @@ A Chrome extension that groups workflows whose names contain `/` into collapsibl
 ## Before / After
 
 | Before | After |
-|--------|-------|
-| `frontend/build` | **frontend/** (collapsible) |
-| `frontend/lint` | ├ `build` |
-| `frontend/test` | ├ `lint` |
-| `publish/libs` | └ `test` |
-| | **publish/** |
-| | └ `libs` |
+|:--------:|:-------:|
+| <img width="270" height="1161" alt="before_flat" src="https://github.com/user-attachments/assets/9a5f058a-93aa-431a-8b39-61b53c19b3b9" /> | <img width="268" height="1060" alt="after_folded" src="https://github.com/user-attachments/assets/39807dfb-40de-4464-bc41-cabf7a321e97" /> |
+
+Of course, you can expand it!
+
+<img width="267" height="1781" alt="after_expanded" src="https://github.com/user-attachments/assets/f636c4ce-b9f6-49c3-a0d8-59ede7c091df" />
 
 ## Features
+
 
 - Splits workflow names at the first `/` into folders (`frontend/tests/unit` → folder `frontend`, display name `tests/unit`)
 - Fetches all workflows in parallel from a GitHub internal endpoint for fast bulk loading
