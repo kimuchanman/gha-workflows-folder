@@ -5,12 +5,13 @@
   "description": "Group GitHub Actions workflows by folder prefix (e.g. frontend/build, frontend/lint → frontend/ folder)",
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/actions*"],
+      "matches": ["https://github.com/*/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }
   ],
+  "homepage_url": "https://github.com/kimuchanman/gha-workflows-folder",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
