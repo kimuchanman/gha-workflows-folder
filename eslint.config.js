@@ -15,6 +15,7 @@ export default [
         fetch: "readonly",
         DOMParser: "readonly",
         Promise: "readonly",
+        location: "readonly",
       },
     },
     rules: {

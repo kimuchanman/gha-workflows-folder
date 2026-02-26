@@ -19,6 +19,13 @@
   let expandingAll = false;
 
   /**
+   * Check if the current page is a GitHub Actions page.
+   */
+  function isActionsPage() {
+    return /^\/[^/]+\/[^/]+\/actions(\/|$)/.test(location.pathname);
+  }
+
+  /**
    * Find the <ul> containing workflow items inside the nav.
    */
   function findWorkflowList() {
@@ -271,6 +278,7 @@
    * running applyGrouping on every "Show more" batch while we're still loading.
    */
   async function expandAllThenGroup() {
+    if (!isActionsPage()) return;
     if (expandingAll) return;
     expandingAll = true;
     try {
