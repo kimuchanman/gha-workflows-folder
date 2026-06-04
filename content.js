@@ -180,14 +180,15 @@
     const { folders } = buildTree(items);
     if (folders.size === 0) return;
 
-    // Insert folders at the top of the list, before the first workflow item.
-    // Ungrouped items remain in their original positions below.
-    const firstItem = ul.querySelector(SELECTORS.workflowItem);
-
+    // createFolderElement detaches grouped items from `ul`, so the first
+    // workflow item can't be used as an insertion anchor — it may itself
+    // be one of the moved items. Build folders into a fragment first, then
+    // prepend it.
+    const fragment = document.createDocumentFragment();
     for (const [folderName, folderItems] of folders) {
-      const folderEl = createFolderElement(folderName, folderItems);
-      ul.insertBefore(folderEl, firstItem);
+      fragment.appendChild(createFolderElement(folderName, folderItems));
     }
+    ul.insertBefore(fragment, ul.firstChild);
   }
 
   /**
