@@ -1,12 +1,23 @@
 (function () {
   "use strict";
 
-  const SELECTORS = {
+  // Old (server-rendered) UI selectors
+  const OLD_SEL = {
     nav: 'nav[aria-label="Actions Workflows"]',
     workflowItem: 'li[data-test-selector="workflow-rendered"]',
     label: ".ActionListItem-label",
     activeItem: ".ActionListItem--navActive",
     showMore: '[data-target="nav-list-group.showMoreItem"]',
+  };
+
+  // New (React/Primer) UI selectors
+  const NEW_SEL = {
+    nav: 'nav[aria-label="Actions workflows"]',
+    group: '[data-component="ActionList.Group"]',
+    groupHeading: '[data-component="ActionList.GroupHeading"]',
+    item: '[data-component="ActionList.Item"]',
+    label: '[data-component="ActionList.Item.Label"]',
+    content: '[data-component="NavList.Item"]',
   };
 
   const CLASSES = {
@@ -18,40 +29,100 @@
 
   let expandingAll = false;
 
-  /**
-   * Check if the current page is a GitHub Actions page.
-   */
   function isActionsPage() {
     return /^\/[^/]+\/[^/]+\/actions(\/|$)/.test(location.pathname);
   }
 
   /**
-   * Find the <ul> containing workflow items inside the nav.
+   * Detect which UI is active and return the nav element.
+   * Returns { nav, isNew } or null.
    */
-  function findWorkflowList() {
-    const nav = document.querySelector(SELECTORS.nav);
-    if (!nav) return null;
+  function detectUI() {
+    const newNav = document.querySelector(NEW_SEL.nav);
+    if (newNav && newNav.querySelector(NEW_SEL.group)) {
+      return { nav: newNav, isNew: true };
+    }
+    const oldNav = document.querySelector(OLD_SEL.nav);
+    if (oldNav) {
+      return { nav: oldNav, isNew: false };
+    }
+    return null;
+  }
 
-    const items = nav.querySelectorAll(SELECTORS.workflowItem);
+  /**
+   * Find the "Workflows" group list <ul> in the new React UI.
+   */
+  function findNewUIWorkflowList(nav) {
+    const groups = nav.querySelectorAll(NEW_SEL.group);
+    for (const group of groups) {
+      const heading = group.querySelector(NEW_SEL.groupHeading);
+      if (heading && heading.textContent.trim() === "Workflows") {
+        return group.querySelector("ul");
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find the <ul> containing workflow items.
+   */
+  function findWorkflowList(nav, isNew) {
+    if (isNew) {
+      return findNewUIWorkflowList(nav);
+    }
+    const items = nav.querySelectorAll(OLD_SEL.workflowItem);
     if (items.length === 0) return null;
-
     return items[0].closest("ul");
+  }
+
+  /**
+   * Get workflow <li> elements from the list.
+   */
+  function getWorkflowItems(ul, isNew) {
+    if (isNew) {
+      return Array.from(ul.querySelectorAll(`:scope > ${NEW_SEL.item}`));
+    }
+    return Array.from(ul.querySelectorAll(OLD_SEL.workflowItem));
+  }
+
+  /**
+   * Get the label text from a workflow item.
+   */
+  function getLabel(item, isNew) {
+    const el = item.querySelector(isNew ? NEW_SEL.label : OLD_SEL.label);
+    return el ? el.textContent.trim() : null;
+  }
+
+  /**
+   * Set the label text on a workflow item.
+   */
+  function setLabel(item, text, isNew) {
+    const el = item.querySelector(isNew ? NEW_SEL.label : OLD_SEL.label);
+    if (el) el.textContent = text;
+  }
+
+  /**
+   * Check if a workflow item is the currently active one.
+   */
+  function isActiveItem(item, isNew) {
+    if (isNew) {
+      return item.getAttribute("data-active") === "true";
+    }
+    return item.querySelector(OLD_SEL.activeItem) !== null;
   }
 
   /**
    * Remove previous grouping, restoring original DOM state.
    */
-  function cleanupPreviousGrouping(ul) {
+  function cleanupPreviousGrouping(ul, isNew) {
     const folders = ul.querySelectorAll(`.${CLASSES.folderGroup}`);
     folders.forEach((folder) => {
       const children = folder.querySelector(".ghawf-folder-children");
       if (children) {
         Array.from(children.children).forEach((child) => {
-          // Restore original label text
-          const label = child.querySelector(SELECTORS.label);
           const originalName = child.getAttribute(ATTR_ORIGINAL_NAME);
-          if (label && originalName) {
-            label.textContent = originalName;
+          if (originalName) {
+            setLabel(child, originalName, isNew);
           }
           child.removeAttribute(ATTR_ORIGINAL_NAME);
           ul.insertBefore(child, folder);
@@ -63,24 +134,19 @@
 
   /**
    * Build a tree structure from workflow items.
-   * Splits only on the first `/`.
-   * Returns { ungrouped: [...items], folders: Map<string, [...items]> }
    */
-  function buildTree(items) {
+  function buildTree(items, isNew) {
     const folders = new Map();
     const ungrouped = [];
 
     items.forEach((item) => {
-      const label = item.querySelector(SELECTORS.label);
-      if (!label) {
+      const fullName = getLabel(item, isNew);
+      if (!fullName) {
         ungrouped.push(item);
         return;
       }
 
-      const fullName = label.textContent.trim();
       const slashIndex = fullName.indexOf("/");
-
-      // No slash, or starts with slash, or ends with slash only → don't group
       if (slashIndex <= 0 || slashIndex === fullName.length - 1) {
         ungrouped.push(item);
         return;
@@ -101,26 +167,22 @@
   /**
    * Create a folder <li> element with collapsible children.
    */
-  function createFolderElement(folderName, items) {
+  function createFolderElement(folderName, items, isNew) {
     const li = document.createElement("li");
     li.className = CLASSES.folderGroup;
 
-    // Check if any child is active
-    const hasActive = items.some(
-      (item) => item.element.querySelector(SELECTORS.activeItem) !== null
-    );
+    const hasActive = items.some((item) => isActiveItem(item.element, isNew));
     if (hasActive) {
       li.classList.add(CLASSES.expanded);
     }
 
-    // Header button
     const button = document.createElement("button");
     button.className = "ghawf-folder-header";
     button.setAttribute("type", "button");
 
     const arrow = document.createElement("span");
     arrow.className = "ghawf-folder-arrow";
-    arrow.textContent = "\u25B6";
+    arrow.textContent = "▶";
 
     const name = document.createElement("span");
     name.className = "ghawf-folder-name";
@@ -141,21 +203,16 @@
       childUl.style.display = isExpanded ? "block" : "none";
     });
 
-    // Children list
     const childUl = document.createElement("ul");
     childUl.className = "ghawf-folder-children";
 
-    // Set initial display based on expanded state
     if (hasActive) {
       childUl.style.display = "block";
     }
 
     items.forEach(({ element, fullName, shortName }) => {
       element.setAttribute(ATTR_ORIGINAL_NAME, fullName);
-      const label = element.querySelector(SELECTORS.label);
-      if (label) {
-        label.textContent = shortName;
-      }
+      setLabel(element, shortName, isNew);
       childUl.appendChild(element);
     });
 
@@ -168,53 +225,47 @@
   /**
    * Core: apply folder grouping to the workflow list.
    */
-  function applyGrouping() {
-    const ul = findWorkflowList();
+  function applyGrouping(nav, isNew) {
+    const ul = findWorkflowList(nav, isNew);
     if (!ul) return;
 
-    cleanupPreviousGrouping(ul);
+    cleanupPreviousGrouping(ul, isNew);
 
-    const items = Array.from(ul.querySelectorAll(SELECTORS.workflowItem));
+    const items = getWorkflowItems(ul, isNew);
     if (items.length === 0) return;
 
-    const { folders } = buildTree(items);
+    const { folders } = buildTree(items, isNew);
     if (folders.size === 0) return;
 
-    // createFolderElement detaches grouped items from `ul`, so the first
-    // workflow item can't be used as an insertion anchor — it may itself
-    // be one of the moved items. Build folders into a fragment first, then
-    // prepend it.
     const fragment = document.createDocumentFragment();
     for (const [folderName, folderItems] of folders) {
-      fragment.appendChild(createFolderElement(folderName, folderItems));
+      fragment.appendChild(createFolderElement(folderName, folderItems, isNew));
     }
     ul.insertBefore(fragment, ul.firstChild);
   }
 
-  /**
-   * Fetch all remaining workflow pages via the workflows_partial endpoint
-   * and insert items into the DOM. Much faster than clicking "Show more"
-   * repeatedly since all pages are fetched in parallel.
-   */
-  async function fetchAllWorkflows() {
-    const nav = document.querySelector(SELECTORS.nav);
-    if (!nav) return;
+  // --- Old UI: fetch all via workflows_partial endpoint ---
 
-    const showMoreEl = nav.querySelector(SELECTORS.showMore);
+  async function fetchAllWorkflowsOldUI(nav) {
+    const showMoreEl = nav.querySelector(OLD_SEL.showMore);
     if (!showMoreEl) return;
 
-    const totalPages = parseInt(showMoreEl.getAttribute("data-total-pages"), 10);
-    const currentPage = parseInt(showMoreEl.getAttribute("data-current-page"), 10);
+    const totalPages = parseInt(
+      showMoreEl.getAttribute("data-total-pages"),
+      10
+    );
+    const currentPage = parseInt(
+      showMoreEl.getAttribute("data-current-page"),
+      10
+    );
     if (!totalPages || totalPages <= currentPage) return;
 
-    // src attribute contains the base URL, e.g. "/{owner}/{repo}/actions/workflows_partial?query="
     const baseSrc = showMoreEl.getAttribute("src");
     if (!baseSrc) return;
 
-    const ul = findWorkflowList();
+    const ul = findWorkflowList(nav, false);
     if (!ul) return;
 
-    // Fetch all remaining pages in parallel
     const pages = [];
     for (let page = currentPage + 1; page <= totalPages; page++) {
       pages.push(page);
@@ -229,25 +280,76 @@
       )
     );
 
-    // Parse each response and insert workflow items into the list
     const parser = new DOMParser();
     for (const html of responses) {
       if (!html) continue;
       const doc = parser.parseFromString(html, "text/html");
-      const items = doc.querySelectorAll(SELECTORS.workflowItem);
+      const items = doc.querySelectorAll(OLD_SEL.workflowItem);
       for (const item of items) {
         ul.appendChild(document.adoptNode(item));
       }
     }
 
-    // Hide the "Show more" button since all items are now loaded
     showMoreEl.hidden = true;
   }
 
-  /**
-   * Set up MutationObserver for SPA navigation.
-   * While expandingAll is true, skip re-grouping (handled by expandAllThenGroup).
-   */
+  // --- New UI: click "Show more" button until all loaded ---
+
+  function waitForChildListChange(target, timeout) {
+    return new Promise((resolve) => {
+      let debounceTimer;
+      const observer = new MutationObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          observer.disconnect();
+          resolve(true);
+        }, 150);
+      });
+      observer.observe(target, { childList: true, subtree: true });
+      setTimeout(() => {
+        clearTimeout(debounceTimer);
+        observer.disconnect();
+        resolve(false);
+      }, timeout);
+    });
+  }
+
+  function findShowMoreButton(ul) {
+    const items = ul.children;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const li = items[i];
+      if (li.getAttribute("data-component") === "ActionList.Item") continue;
+      const btn = li.querySelector("button");
+      if (btn && btn.textContent.includes("Show more")) return btn;
+    }
+    return null;
+  }
+
+  async function fetchAllWorkflowsNewUI(nav) {
+    const ul = findNewUIWorkflowList(nav);
+    if (!ul) return;
+
+    const maxAttempts = 100;
+    for (let i = 0; i < maxAttempts; i++) {
+      const btn = findShowMoreButton(ul);
+      if (!btn) break;
+
+      btn.click();
+      const changed = await waitForChildListChange(ul, 5000);
+      if (!changed) break;
+    }
+  }
+
+  // --- Shared orchestration ---
+
+  async function fetchAllWorkflows(nav, isNew) {
+    if (isNew) {
+      await fetchAllWorkflowsNewUI(nav);
+    } else {
+      await fetchAllWorkflowsOldUI(nav);
+    }
+  }
+
   function setupObserver() {
     const observer = new MutationObserver((mutations) => {
       if (expandingAll) return;
@@ -259,10 +361,11 @@
         for (const node of mutation.addedNodes) {
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
-          // New nav appeared (SPA navigation) → full expand + group
           if (
-            node.matches?.(SELECTORS.nav) ||
-            node.querySelector?.(SELECTORS.nav)
+            node.matches?.(OLD_SEL.nav) ||
+            node.querySelector?.(OLD_SEL.nav) ||
+            node.matches?.(NEW_SEL.nav) ||
+            node.querySelector?.(NEW_SEL.nav)
           ) {
             expandAllThenGroup();
             return;
@@ -274,32 +377,28 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  /**
-   * Expand all then apply grouping. Prevents MutationObserver from
-   * running applyGrouping on every "Show more" batch while we're still loading.
-   */
   async function expandAllThenGroup() {
     if (!isActionsPage()) return;
     if (expandingAll) return;
     expandingAll = true;
     try {
-      await fetchAllWorkflows();
-      applyGrouping();
+      const ui = detectUI();
+      if (!ui) return;
+      await fetchAllWorkflows(ui.nav, ui.isNew);
+      applyGrouping(ui.nav, ui.isNew);
     } finally {
       expandingAll = false;
     }
   }
 
-  /**
-   * Entry point.
-   */
   function init() {
     expandAllThenGroup();
     setupObserver();
 
-    // Supplementary: Turbo events for SPA navigation
     document.addEventListener("turbo:load", () => expandAllThenGroup());
-    document.addEventListener("turbo:frame-render", () => expandAllThenGroup());
+    document.addEventListener("turbo:frame-render", () =>
+      expandAllThenGroup()
+    );
   }
 
   if (document.readyState === "loading") {

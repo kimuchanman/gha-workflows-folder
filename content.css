@@ -74,6 +74,7 @@
   display: block;
 }
 
-.ghawf-folder-children > li .ActionListContent {
+.ghawf-folder-children > li .ActionListContent,
+.ghawf-folder-children > li [data-component="NavList.Item"] {
   padding-left: 32px !important;
 }
