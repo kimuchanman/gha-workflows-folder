@@ -9,7 +9,8 @@
     "lint:css": "stylelint '**/*.css'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate:manifest": "node tests/validate-manifest.js"
+    "validate:manifest": "node tests/validate-manifest.js",
+    "package": "sh scripts/package.sh"
   },
   "devDependencies": {
     "eslint": "^9.0.0",
