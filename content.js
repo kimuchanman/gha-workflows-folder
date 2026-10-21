@@ -394,16 +394,23 @@
     if (!ul) return;
 
     const maxAttempts = 100;
+    const maxIgnored = 20;
+    const maxTimeouts = 3;
+    let ignored = 0;
+    let timeouts = 0;
     for (let i = 0; i < maxAttempts; i++) {
       const btn = findShowMoreButton(ul);
       if (!btn) break;
 
       const result = await clickAndWaitForMoreItems(ul, btn);
       if (result === "ignored") {
+        if (++ignored >= maxIgnored) break;
         await sleep(500);
-        continue;
+      } else if (result === "timeout") {
+        // Hydration may change the list right after an ignored click,
+        // which looks like a reaction. Click again while the button is there.
+        if (++timeouts >= maxTimeouts) break;
       }
-      if (result === "timeout") break;
     }
   }
 
