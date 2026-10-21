@@ -336,23 +336,46 @@
   }
 
   /**
-   * Wait until more workflow items are appended to the list.
-   * The "Show more" button itself changes to "Loading workflows…" right
-   * after the click, so any mutation is not a sign that loading finished.
+   * Click "Show more" and wait until more workflow items are appended.
+   * The button itself changes to "Loading workflows…" right after the
+   * click, so any mutation is not a sign that loading finished.
+   * Before React hydrates the sidebar, the server-rendered button ignores
+   * clicks and nothing in the list changes. Resolves "ignored" then, so
+   * the caller can click again.
+   * Resolves "loaded", "ignored" or "timeout".
    */
-  function waitForMoreItems(ul, countBefore, timeout) {
+  function clickAndWaitForMoreItems(ul, btn) {
+    const countBefore = countNewUIItems(ul);
     return new Promise((resolve) => {
+      let reacted = false;
       const observer = new MutationObserver(() => {
-        if (countNewUIItems(ul) > countBefore) finish(true);
+        reacted = true;
+        if (countNewUIItems(ul) > countBefore) finish("loaded");
       });
-      const timer = setTimeout(() => finish(false), timeout);
+      const ignoredTimer = setTimeout(() => {
+        if (!reacted) finish("ignored");
+      }, 1000);
+      const timeoutTimer = setTimeout(() => finish("timeout"), 10000);
       function finish(result) {
-        clearTimeout(timer);
+        clearTimeout(ignoredTimer);
+        clearTimeout(timeoutTimer);
         observer.disconnect();
         resolve(result);
       }
-      observer.observe(ul, { childList: true });
+      // Observe before clicking so a synchronous re-render is not missed
+      observer.observe(ul, {
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["data-loading"],
+        subtree: true,
+      });
+      btn.click();
     });
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   function findShowMoreButton(ul) {
@@ -371,14 +394,23 @@
     if (!ul) return;
 
     const maxAttempts = 100;
+    const maxIgnored = 20;
+    const maxTimeouts = 3;
+    let ignored = 0;
+    let timeouts = 0;
     for (let i = 0; i < maxAttempts; i++) {
       const btn = findShowMoreButton(ul);
       if (!btn) break;
 
-      const countBefore = countNewUIItems(ul);
-      btn.click();
-      const loaded = await waitForMoreItems(ul, countBefore, 10000);
-      if (!loaded) break;
+      const result = await clickAndWaitForMoreItems(ul, btn);
+      if (result === "ignored") {
+        if (++ignored >= maxIgnored) break;
+        await sleep(500);
+      } else if (result === "timeout") {
+        // Hydration may change the list right after an ignored click,
+        // which looks like a reaction. Click again while the button is there.
+        if (++timeouts >= maxTimeouts) break;
+      }
     }
   }
 
