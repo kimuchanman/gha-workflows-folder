@@ -31,7 +31,9 @@ jobs:
 
       - name: Package
         id: package
-        run: echo "zip=$(npm run --silent package)" >> "$GITHUB_OUTPUT"
+        run: |
+          zip_path=$(npm run --silent package)
+          echo "zip=$zip_path" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         env:
