@@ -331,22 +331,27 @@
 
   // --- New UI: click "Show more" button until all loaded ---
 
-  function waitForChildListChange(target, timeout) {
+  function countNewUIItems(ul) {
+    return ul.querySelectorAll(`:scope > ${NEW_SEL.item}`).length;
+  }
+
+  /**
+   * Wait until more workflow items are appended to the list.
+   * The "Show more" button itself changes to "Loading workflows…" right
+   * after the click, so any mutation is not a sign that loading finished.
+   */
+  function waitForMoreItems(ul, countBefore, timeout) {
     return new Promise((resolve) => {
-      let debounceTimer;
       const observer = new MutationObserver(() => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          observer.disconnect();
-          resolve(true);
-        }, 150);
+        if (countNewUIItems(ul) > countBefore) finish(true);
       });
-      observer.observe(target, { childList: true, subtree: true });
-      setTimeout(() => {
-        clearTimeout(debounceTimer);
+      const timer = setTimeout(() => finish(false), timeout);
+      function finish(result) {
+        clearTimeout(timer);
         observer.disconnect();
-        resolve(false);
-      }, timeout);
+        resolve(result);
+      }
+      observer.observe(ul, { childList: true });
     });
   }
 
@@ -370,9 +375,10 @@
       const btn = findShowMoreButton(ul);
       if (!btn) break;
 
+      const countBefore = countNewUIItems(ul);
       btn.click();
-      const changed = await waitForChildListChange(ul, 5000);
-      if (!changed) break;
+      const loaded = await waitForMoreItems(ul, countBefore, 10000);
+      if (!loaded) break;
     }
   }
 
