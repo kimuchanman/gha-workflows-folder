@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GHA Workflows Folder",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Group GitHub Actions workflows by folder prefix (e.g. frontend/build, frontend/lint → frontend/ folder)",
   "content_scripts": [
     {
