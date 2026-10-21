@@ -71,7 +71,6 @@ Load the cloned folder with **Load unpacked** to try your changes.
 
 ### Releasing
 
-1. Bump `version` in `manifest.json`.
-2. Push a tag with the same version: `git tag v1.2.3 && git push origin v1.2.3`.
+Bump `version` in `manifest.json` in a pull request and merge it.
 
-The Release workflow runs lint and tests, builds the zip with `npm run package`, and attaches it to a new GitHub Release.
+When `main` gets a version that has no release yet, the Release workflow runs lint and tests, builds the zip with `npm run package`, and creates the `v<version>` tag and a GitHub Release with the zip attached. Merges that do not change the version release nothing.

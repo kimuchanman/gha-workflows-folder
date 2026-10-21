@@ -15,7 +15,7 @@ GitHub Actions のワークフロー一覧サイドバーで、`/` を含むワ�
 - `.stylelintrc.json` - Stylelint 設定
 - `tests/` - vitest ユニットテスト + manifest バリデーション
 - `scripts/package.sh` - 配布用 zip を `dist/` に作る(`npm run package`)
-- `.github/workflows/release.yml` - `v*` タグの push で zip を作り GitHub Release に添付する
+- `.github/workflows/release.yml` - main の `manifest.json` の version が未リリースなら、タグと GitHub Release を作り zip を添付する
 
 ## Development Commands
 
@@ -28,7 +28,7 @@ GitHub Actions のワークフロー一覧サイドバーで、`/` を含むワ�
 
 ## Release
 
-`manifest.json` の `version` を上げてから、同じ番号のタグ(`v1.2.3`)を push する。タグと `version` が違うと Release ワークフローは失敗する。
+PR で `manifest.json` の `version` を上げてマージする。タグ(`v<version>`)と Release は Release ワークフローが作るので、手でタグを push しない。version を変えないマージではリリースしない。
 
 ## Key Conventions
 
