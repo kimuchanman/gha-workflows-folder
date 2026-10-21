@@ -17,8 +17,9 @@ function buildTree(items) {
       return;
     }
 
-    const folderName = fullName.substring(0, slashIndex);
-    const shortName = fullName.substring(slashIndex + 1);
+    // Trim so "backend / Test" groups with "backend/Lint"
+    const folderName = fullName.substring(0, slashIndex).trim();
+    const shortName = fullName.substring(slashIndex + 1).trim();
 
     if (!folders.has(folderName)) {
       folders.set(folderName, []);
@@ -111,6 +112,17 @@ describe("buildTree", () => {
     expect(ungrouped).toHaveLength(0);
     expect(folders.size).toBe(1);
     expect(folders.get("publish")).toHaveLength(1);
+  });
+
+  it("trims spaces around the slash", () => {
+    const items = [{ name: "backend / Test" }, { name: "backend/Lint" }];
+    const { folders } = buildTree(items);
+
+    expect(folders.size).toBe(1);
+    expect(folders.get("backend").map((i) => i.shortName)).toEqual([
+      "Test",
+      "Lint",
+    ]);
   });
 
   it("handles empty input", () => {
