@@ -26,8 +26,10 @@
   };
 
   const ATTR_ORIGINAL_NAME = "data-ghawf-original-name";
+  const ATTR_SHORT_NAME = "data-ghawf-short-name";
 
   let expandingAll = false;
+  let labelObserver = null;
 
   function isActionsPage() {
     return /^\/[^/]+\/[^/]+\/actions(\/|$)/.test(location.pathname);
@@ -125,6 +127,7 @@
             setLabel(child, originalName, isNew);
           }
           child.removeAttribute(ATTR_ORIGINAL_NAME);
+          child.removeAttribute(ATTR_SHORT_NAME);
           ul.insertBefore(child, folder);
         });
       }
@@ -212,6 +215,7 @@
 
     items.forEach(({ element, fullName, shortName }) => {
       element.setAttribute(ATTR_ORIGINAL_NAME, fullName);
+      element.setAttribute(ATTR_SHORT_NAME, shortName);
       setLabel(element, shortName, isNew);
       childUl.appendChild(element);
     });
@@ -229,6 +233,11 @@
     const ul = findWorkflowList(nav, isNew);
     if (!ul) return;
 
+    if (labelObserver) {
+      labelObserver.disconnect();
+      labelObserver = null;
+    }
+
     cleanupPreviousGrouping(ul, isNew);
 
     const items = getWorkflowItems(ul, isNew);
@@ -242,6 +251,30 @@
       fragment.appendChild(createFolderElement(folderName, folderItems, isNew));
     }
     ul.insertBefore(fragment, ul.firstChild);
+
+    if (isNew) observeLabels(ul);
+  }
+
+  /**
+   * New UI: React re-renders an item's content when its active state
+   * changes (client-side navigation), which resets the label to the full
+   * name. Restore the short name whenever that happens. Writing the same
+   * text again triggers no further mutation, so this does not loop.
+   */
+  function observeLabels(ul) {
+    labelObserver = new MutationObserver(() => {
+      ul.querySelectorAll(`[${ATTR_SHORT_NAME}]`).forEach((item) => {
+        const shortName = item.getAttribute(ATTR_SHORT_NAME);
+        if (getLabel(item, true) !== shortName) {
+          setLabel(item, shortName, true);
+        }
+      });
+    });
+    labelObserver.observe(ul, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
   }
 
   // --- Old UI: fetch all via workflows_partial endpoint ---
