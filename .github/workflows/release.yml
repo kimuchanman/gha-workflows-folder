@@ -1,41 +1,64 @@
 name: Release
 
+# Releases whenever manifest.json on main has a version without a release yet.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [manifest.json]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+
+      - name: Check whether this version is already released
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(node -p 'require("./manifest.json").version')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "$tag is already released"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.released == 'false'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - run: npm run validate:manifest
-
-      - name: Check tag matches manifest version
-        run: |
-          manifest_version=$(node -p 'require("./manifest.json").version')
-          if [ "${GITHUB_REF_NAME#v}" != "$manifest_version" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match manifest.json version $manifest_version"
-            exit 1
-          fi
+      - if: steps.version.outputs.released == 'false'
+        run: npm ci
+      - if: steps.version.outputs.released == 'false'
+        run: npm run lint
+      - if: steps.version.outputs.released == 'false'
+        run: npm test
+      - if: steps.version.outputs.released == 'false'
+        run: npm run validate:manifest
 
       - name: Package
+        if: steps.version.outputs.released == 'false'
         id: package
         run: |
           zip_path=$(npm run --silent package)
           echo "zip=$zip_path" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      - name: Create tag and GitHub Release
+        if: steps.version.outputs.released == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "${{ steps.package.outputs.zip }}" --generate-notes
+          TAG: ${{ steps.version.outputs.tag }}
+          ZIP: ${{ steps.package.outputs.zip }}
+        run: gh release create "$TAG" "$ZIP" --target "$GITHUB_SHA" --generate-notes
