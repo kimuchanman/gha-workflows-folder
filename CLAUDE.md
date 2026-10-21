@@ -38,7 +38,7 @@ GitHub Actions のワークフロー一覧サイドバーで、`/` を含むワ�
 
 ## Testing
 
-動作確認は https://github.com/bm-sms/xuan/actions で行う。
+動作確認は、`/` を含む名前のワークフローが多く "Show more" が複数回出るリポジトリの Actions ページで行う。
 `chrome://extensions` → デベロッパーモード → 「パッケージ化されていない拡張機能を読み込む」でこのフォルダを指定。
 
 ## GitHub Internal Endpoints
