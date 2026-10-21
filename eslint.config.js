@@ -27,6 +27,6 @@ export default [
     },
   },
   {
-    ignores: ["node_modules/", "tests/", "eslint.config.js"],
+    ignores: ["node_modules/", "dist/", "tests/", "eslint.config.js"],
   },
 ];

@@ -14,6 +14,8 @@ GitHub Actions のワークフロー一覧サイドバーで、`/` を含むワ�
 - `eslint.config.js` - ESLint flat config（browser globals を手動定義）
 - `.stylelintrc.json` - Stylelint 設定
 - `tests/` - vitest ユニットテスト + manifest バリデーション
+- `scripts/package.sh` - 配布用 zip を `dist/` に作る(`npm run package`)
+- `.github/workflows/release.yml` - `v*` タグの push で zip を作り GitHub Release に添付する
 
 ## Development Commands
 
@@ -22,6 +24,11 @@ GitHub Actions のワークフロー一覧サイドバーで、`/` を含むワ�
 - `npm run lint:css` - Stylelint のみ
 - `npm test` - vitest 実行
 - `npm run validate:manifest` - manifest.json の構造チェック
+- `npm run package` - 配布用 zip を作る
+
+## Release
+
+`manifest.json` の `version` を上げてから、同じ番号のタグ(`v1.2.3`)を push する。タグと `version` が違うと Release ワークフローは失敗する。
 
 ## Key Conventions
 
