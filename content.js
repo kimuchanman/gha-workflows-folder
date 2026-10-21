@@ -155,8 +155,9 @@
         return;
       }
 
-      const folderName = fullName.substring(0, slashIndex);
-      const shortName = fullName.substring(slashIndex + 1);
+      // Trim so "backend / Test" groups with "backend/Lint"
+      const folderName = fullName.substring(0, slashIndex).trim();
+      const shortName = fullName.substring(slashIndex + 1).trim();
 
       if (!folders.has(folderName)) {
         folders.set(folderName, []);
@@ -265,8 +266,10 @@
     labelObserver = new MutationObserver(() => {
       ul.querySelectorAll(`[${ATTR_SHORT_NAME}]`).forEach((item) => {
         const shortName = item.getAttribute(ATTR_SHORT_NAME);
-        if (getLabel(item, true) !== shortName) {
-          setLabel(item, shortName, true);
+        const label = item.querySelector(NEW_SEL.label);
+        // Compare the raw text so the write always converges
+        if (label && label.textContent !== shortName) {
+          label.textContent = shortName;
         }
       });
     });
